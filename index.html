@@ -44,7 +44,7 @@
         .color-swatch:hover { transform: scale(1.05); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
     </style>
 </head>
-<body class="bg-gray-800 dark:bg-black flex items-center justify-center min-h-screen">
+<body class="bg-gray-800 flex items-center justify-center min-h-screen">
 
     <div class="iphone-frame">
         <div class="iphone-notch"></div>
@@ -52,17 +52,17 @@
 
             <!-- Login Page -->
             <div id="login-page" class="page active h-full">
-                 <div class="absolute inset-0 bg-gray-200 dark:bg-gray-900"></div>
+                 <div class="absolute inset-0 bg-gray-200"></div>
                 <div class="relative h-full flex flex-col justify-center items-center p-8">
                     <div class="w-full max-w-sm text-center space-y-6">
                         <img id="login-logo" src="https://placehold.co/150x50/334155/FFFFFF?text=H.SABAN" alt="Company Logo" class="mx-auto h-12">
                         <div class="relative inline-block">
-                             <img id="user-avatar" src="https://placehold.co/100x100/FFFFFF/CCCCCC?text=" alt="User Avatar" class="w-28 h-28 rounded-full mx-auto border-4 border-white dark:border-gray-700 shadow-lg">
+                             <img id="user-avatar" src="https://placehold.co/100x100/FFFFFF/CCCCCC?text=" alt="User Avatar" class="w-28 h-28 rounded-full mx-auto border-4 border-white shadow-lg">
                              <div class="absolute -top-2 -right-2 text-4xl animate-wave">👋</div>
                         </div>
-                        <h1 class="text-3xl font-bold">ברוכים הבאים</h1>
-                        <div><input id="phone-input" type="tel" placeholder="מספר טלפון" class="w-full bg-white/50 dark:bg-gray-800/50 border-b-2 border-gray-300 dark:border-gray-600 text-center focus:outline-none focus:border-blue-500 py-3 rounded-t-lg"></div>
-                        <div><input id="password-input" type="password" placeholder="סיסמה" class="w-full bg-white/50 dark:bg-gray-800/50 border-b-2 border-gray-300 dark:border-gray-600 text-center focus:outline-none focus:border-blue-500 py-3 rounded-b-lg mb-4"></div>
+                        <h1 class="text-3xl font-bold text-gray-800">ברוכים הבאים</h1>
+                        <div><input id="phone-input" type="tel" placeholder="מספר טלפון" class="w-full bg-white/50 border-b-2 border-gray-300 text-center text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 py-3 rounded-t-lg"></div>
+                        <div><input id="password-input" type="password" placeholder="סיסמה" class="w-full bg-white/50 border-b-2 border-gray-300 text-center text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 py-3 rounded-b-lg mb-4"></div>
                         <button id="login-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-105 shadow-lg shine-effect">כניסה</button>
                     </div>
                 </div>
@@ -88,13 +88,12 @@
                     </div>
                     <div id="containers-page" class="page"></div><div id="materials-page" class="page"></div><div id="reports-page" class="page"></div>
 
-                    <!-- Paint Tinting Page -->
                     <div id="tinting-page" class="page">
                         <p class="text-secondary mb-4">בחר את הגוון הרצוי מהמניפה. תוכל לסנן לפי מותג.</p>
                         <div class="flex gap-2 mb-4">
                             <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-blue-500 bg-blue-500 text-white" data-brand="all">הכל</button>
-                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-gray-300" data-brand="נירלט">נירלט</button>
-                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-gray-300" data-brand="טמבור">טמבור</button>
+                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-gray-300 dark:border-gray-600" data-brand="נירלט">נירלט</button>
+                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-gray-300 dark:border-gray-600" data-brand="טמבור">טמבור</button>
                         </div>
                         <div id="color-swatch-grid" class="grid grid-cols-3 gap-4"></div>
                     </div>
@@ -125,8 +124,10 @@
                     </div>
                 </main>
                 <nav class="absolute bottom-0 left-0 right-0 nav-bar flex justify-around text-secondary text-xs z-50 rounded-b-3xl"></nav>
+
                 <div id="popup-container" class="absolute bottom-24 left-4 right-4 space-y-2 z-50"></div>
-                <div id="modal-container">
+                
+                <div id="modal-container" class="hidden">
                     <div id="paint-order-modal" class="modal fixed inset-0 bg-black/50 flex items-center justify-center p-4">
                         <div class="card rounded-lg p-6 w-full max-w-sm">
                             <div id="paint-order-header" class="text-center mb-4 pb-4 border-b border-border-color"></div>
@@ -146,7 +147,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyp9fB8y-2ZDp39MxfcysYlgOO6DlJKcndF202vRk0DLbWjIfgROc02GyCQJy21ORRCPQ/exec';
             const loginPage = document.getElementById('login-page');
             const mainApp = document.getElementById('main-app');
             const loginBtn = document.getElementById('login-btn');
@@ -157,6 +157,7 @@
             const headerTitle = document.getElementById('header-title');
             const fileUploadInput = document.getElementById('file-upload');
             const fileNameDisplay = document.getElementById('file-name');
+            const modalContainer = document.getElementById('modal-container');
 
             const orderWizardState = { currentStep: 1, totalSteps: 3 };
             let currentPaintOrder = {};
@@ -174,8 +175,16 @@
                 popup.className = 'popup bg-gray-800 text-white text-center py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-4';
                 popup.textContent = message;
                 popupContainer.appendChild(popup);
-                setTimeout(() => popup.classList.add('show'), 10);
+                setTimeout(() => { popup.classList.add('show'); }, 10);
                 setTimeout(() => { popup.classList.remove('show'); setTimeout(() => popup.remove(), 300); }, duration);
+            }
+            
+            function applySavedTheme() {
+                if (localStorage.getItem('theme') === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
             }
 
             function handleLogin() {
@@ -185,6 +194,8 @@
                 setTimeout(() => {
                     loginPage.classList.remove('active');
                     mainApp.classList.remove('hidden');
+                    modalContainer.classList.remove('hidden');
+                    applySavedTheme();
                     switchPage('home-page');
                     showPopup(`ברוך השב, ערן!`);
                     setTimeout(() => showPopup(`כניסה אחרונה שלך: אתמול, 17:30`), 1500);
@@ -276,10 +287,10 @@
                     btn.addEventListener('click', (e) => {
                         document.querySelectorAll('.brand-filter-btn').forEach(b => {
                             b.classList.remove('bg-blue-500', 'text-white');
-                            b.classList.add('border-gray-300');
+                            b.classList.add('border-gray-300', 'dark:border-gray-600');
                         });
                         e.currentTarget.classList.add('bg-blue-500', 'text-white');
-                        e.currentTarget.classList.remove('border-gray-300');
+                        e.currentTarget.classList.remove('border-gray-300', 'dark:border-gray-600');
                         renderColorSwatches(e.currentTarget.dataset.brand);
                     });
                 });
@@ -289,21 +300,22 @@
                     else { fileNameDisplay.textContent = ''; }
                 });
             }
-
-            function setupTheme() {
-                if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
-                else document.documentElement.classList.remove('dark');
-                themeToggleBtn.addEventListener('click', () => {
+            
+            function setupThemeToggle() {
+                 themeToggleBtn.addEventListener('click', () => {
                     document.documentElement.classList.toggle('dark');
                     localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
                 });
             }
             
-            setupTheme(); setupNavigation(); setupEventListeners(); switchPage('login-page');
+            document.documentElement.classList.remove('dark');
+            setupThemeToggle();
+            setupNavigation();
+            setupEventListeners();
+            switchPage('login-page');
             document.querySelector('.nav-btn[data-page="home-page"]').classList.add('active');
         });
     </script>
 </body>
 </html>
-
 
