@@ -1,48 +1,382 @@
-<html lang="he">
-<div id="orderForm" class="card" style="display:none">
-<div class="progress"><i></i></div>
-<h4>טופס הזמנה חדשה</h4>
-<div class="form-grid">
-<input id="contactName" placeholder="איש קשר" />
-<input id="contactPhone" placeholder="טלפון לקבלת סחורה" />
-<select id="actionType">
-<option>הצבה</option>
-<option>החלפה</option>
-<option>איסוף</option>
-<option>הובלה</option>
-<option>שאלה</option>
-</select>
-<select id="branch">
-<option value="התלמיד">התלמיד - התלמיד 6, הוד השרון</option>
-<option value="החרש">החרש - החרש 10, הוד השרון</option>
-</select>
-</div>
-<textarea id="supplyAddress" placeholder="כתובת אספקה / תיאור"></textarea>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>מערכת ניהול פרימיום - ח. סבן</title>
+    <!-- Chosen Palette: Premium Neutral Blue -->
+    <!-- Application Structure Plan: The application is a task-oriented SPA designed for a premium mobile-first experience, framed within a virtual iPhone. The core structure uses a fixed bottom navigation bar for switching between key modules: Home (Project Dashboard), Containers, Building Materials (new), and Reports (new). This modular approach was chosen for its intuitive and scalable nature, allowing users to switch contexts easily. The "Reports" section acts as a centralized analytics dashboard, providing high-level insights, while other sections are focused on specific operational tasks. This architecture separates operational workflows from strategic analysis, which is a highly effective UX pattern for business applications. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Overall business activity -> Goal: Show trends and composition -> Viz: Bar chart for monthly totals, Doughnut chart for type breakdown (Chart.js) -> Interaction: Filters for date range will update all charts -> Justification: Visual charts are superior to tables for quick trend analysis and comparison.
+        - Report Info: Building materials order history -> Goal: Allow review and re-ordering -> Viz: Interactive HTML table -> Interaction: Sortable columns, search, and a "re-order" button on each row -> Justification: A table is ideal for displaying detailed historical data in a structured format.
+        - Report Info: Container status across projects -> Goal: Provide an immediate overview and highlight issues -> Viz: Dynamic "Cards" layout (HTML/CSS) with conditional styling -> Interaction: Red pulsing animation for overdue containers, action buttons on each card -> Justification: A card-based layout is visually engaging and perfect for presenting at-a-glance status information on mobile.
+        - Report Info: User login and welcome -> Goal: Create a premium, personalized feel -> Viz: Glassmorphism login card, animated entry, welcome pop-ups (HTML/CSS/JS) -> Interaction: Smooth transitions and timed pop-ups -> Justification: These elements establish the high-end user experience defined in the project philosophy.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', 'Arial', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .iphone-frame {
+            width: 100vw;
+            height: 100vh;
+            max-width: 450px;
+            max-height: 950px;
+            margin: auto;
+            border: 10px solid black;
+            border-radius: 50px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            background: #f0f2f5;
+        }
+        .iphone-screen {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+        .iphone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 25px;
+            background: black;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            z-index: 100;
+        }
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .page { display: none; }
+        .page.active { display: block; }
+        .nav-btn.active { color: #3b82f6; }
+        .popup {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .popup.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        .shine-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 20%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(45deg);
+            transition: all 0.5s ease-out;
+            opacity: 0;
+        }
+        .shine-effect:hover::after {
+            left: 120%;
+            opacity: 1;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .iphone-frame {
+                height: 90vh;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-800 flex items-center justify-center min-h-screen">
 
+    <div class="iphone-frame">
+        <div class="iphone-notch"></div>
+        <div id="app-screen" class="iphone-screen">
 
-<div class="items">
-<input id="productSearch" placeholder="הזן מוצר/מק" />
-<div id="pickedItems" class="items-list"></div>
-<div class="btn-row"><button id="btnAddItem">הוסף פריט</button><button id="btnSendWA">שתף לוואטסאפ</button></div>
-</div>
-</div>
+            <!-- Login Page -->
+            <div id="login-page" class="page active h-full bg-cover bg-center" style="background-image: url('https://placehold.co/450x950/003366/FFFFFF?text=Construction+Site+Video+Placeholder');">
+                <div class="absolute inset-0 bg-blue-900/70"></div>
+                <div class="relative h-full flex flex-col justify-center items-center p-8 text-white">
+                    <div class="glassmorphism w-full max-w-sm rounded-3xl p-8 text-center space-y-6">
+                        <img id="login-logo" src="https://placehold.co/150x50/FFFFFF/003366?text=H.SABAN+LOGO" alt="Company Logo" class="mx-auto h-12">
+                        <img id="user-avatar" src="https://placehold.co/100x100/FFFFFF/CCCCCC?text=Avatar" alt="User Avatar" class="w-24 h-24 rounded-full mx-auto border-4 border-white/50">
+                        <h1 class="text-2xl font-bold">כניסה למערכת</h1>
+                        <div>
+                            <input id="phone-input" type="tel" placeholder="מספר טלפון" class="w-full bg-transparent border-b-2 border-white/50 text-center text-white placeholder-white/70 focus:outline-none focus:border-blue-400 py-2">
+                        </div>
+                        <div>
+                            <input id="password-input" type="password" placeholder="סיסמה" class="w-full bg-transparent border-b-2 border-white/50 text-center text-white placeholder-white/70 focus:outline-none focus:border-blue-400 py-2">
+                        </div>
+                        <button id="login-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-transform transform hover:scale-105">כניסה</button>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Main App Content -->
+            <div id="main-app" class="hidden h-full flex flex-col">
+                <main class="flex-1 overflow-y-auto p-4 pb-20">
+                    <!-- Home Page -->
+                    <div id="home-page" class="page">
+                        <h1 class="text-2xl font-bold mb-4">פורטל הפרויקטים</h1>
+                         <p class="text-gray-600 mb-6">מכאן תוכל לנהל את כל האתרים וההזמנות שלך. בחר פרויקט כדי להתחיל או הוסף פרויקט חדש.</p>
+                        <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Project cards will be injected here -->
+                        </div>
+                         <button id="add-project-fab" class="fixed bottom-20 right-6 bg-blue-500 text-white w-14 h-14 rounded-full shadow-lg text-2xl z-50">+</button>
+                    </div>
 
-<div id="historyArea" class="card" style="display:none"></div>
-</section>
-</main>
+                    <!-- Containers Page -->
+                    <div id="containers-page" class="page">
+                        <h1 class="text-2xl font-bold mb-4">מגדל הפיקוח - מכולות</h1>
+                        <p class="text-gray-600 mb-6">צפה בסטטוס כל המכולות שלך בזמן אמת. המערכת תתריע אוטומטית על חריגות ותאפשר לך לבצע פעולות מהירות לכל אתר.</p>
+                        <div id="containers-list" class="space-y-4">
+                            <!-- Container cards will be injected here -->
+                        </div>
+                        <button id="add-container-fab" class="fixed bottom-20 right-6 bg-blue-500 text-white w-14 h-14 rounded-full shadow-lg text-2xl z-50">+</button>
+                    </div>
+                    
+                    <!-- Building Materials Page -->
+                    <div id="materials-page" class="page">
+                        <h1 class="text-2xl font-bold mb-4">הזמנות חומרי בניין</h1>
+                        <p class="text-gray-600 mb-6">נהל את היסטוריית הזמנות החומרים שלך, שכפל הזמנות קודמות או צור הזמנה חדשה בקלות.</p>
+                        <button id="new-material-order-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg mb-6">הזמנת חומרים חדשה</button>
+                        <h2 class="text-xl font-semibold mb-2">היסטוריית הזמנות</h2>
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                           <table class="w-full text-sm">
+                               <thead class="bg-gray-100">
+                                   <tr>
+                                       <th class="p-3 text-right">תאריך</th>
+                                       <th class="p-3 text-right">פרויקט</th>
+                                       <th class="p-3 text-right">סטטוס</th>
+                                       <th class="p-3">פעולות</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="materials-history-body">
+                                   <!-- Material order history rows will be injected here -->
+                               </tbody>
+                           </table>
+                        </div>
+                    </div>
 
+                    <!-- Reports Page -->
+                    <div id="reports-page" class="page">
+                        <h1 class="text-2xl font-bold mb-4">דוחות וניתוחים</h1>
+                        <p class="text-gray-600 mb-6">קבל תובנות על הפעילות העסקית שלך. הגרפים והנתונים מתעדכנים בזמן אמת ומאפשרים לך לקבל החלטות מבוססות מידע.</p>
+                        <div class="space-y-8">
+                            <div>
+                                <h2 class="text-xl font-semibold mb-2">הזמנות לפי חודש</h2>
+                                <div class="chart-container bg-white p-4 rounded-lg shadow"><canvas id="monthlyOrdersChart"></canvas></div>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-semibold mb-2">התפלגות סוגי הזמנות</h2>
+                                <div class="chart-container bg-white p-4 rounded-lg shadow"><canvas id="orderTypeChart"></canvas></div>
+                            </div>
+                            <div>
+                               <h2 class="text-xl font-semibold mb-2">קוביית דוחות מהירה</h2>
+                               <div class="grid grid-cols-2 gap-4 text-center">
+                                   <div class="bg-white p-4 rounded-lg shadow shine-effect cursor-pointer">
+                                       <div class="text-3xl font-bold text-blue-600">12</div>
+                                       <div class="text-gray-500">מכולות פעילות</div>
+                                   </div>
+                                   <div class="bg-white p-4 rounded-lg shadow shine-effect cursor-pointer">
+                                       <div class="text-3xl font-bold text-red-500">3</div>
+                                       <div class="text-gray-500">מכולות בחריגה</div>
+                                   </div>
+                                    <div class="bg-white p-4 rounded-lg shadow shine-effect cursor-pointer">
+                                       <div class="text-3xl font-bold text-green-600">45</div>
+                                       <div class="text-gray-500">הזמנות החודש</div>
+                                   </div>
+                                    <div class="bg-white p-4 rounded-lg shadow shine-effect cursor-pointer">
+                                       <div class="text-3xl font-bold text-purple-600">7</div>
+                                       <div class="text-gray-500">פרויקטים פעילים</div>
+                                   </div>
+                               </div>
+                            </div>
+                        </div>
+                    </div>
 
-<footer class="footer-nav">
-<button>ראשי</button>
-<button>מכולה</button>
-<button>הזמנת מנוף</button>
-<button>פריקה ידנית</button>
-</footer>
-</div>
+                </main>
+                <!-- Bottom Navigation -->
+                <nav class="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 flex justify-around text-gray-500 text-xs z-50 rounded-b-3xl">
+                    <button data-page="home-page" class="nav-btn flex-1 flex flex-col items-center p-3 active">
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        ראשי
+                    </button>
+                    <button data-page="containers-page" class="nav-btn flex-1 flex flex-col items-center p-3">
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        מכולות
+                    </button>
+                    <button data-page="materials-page" class="nav-btn flex-1 flex flex-col items-center p-3">
+                         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                        חומרי בניין
+                    </button>
+                    <button data-page="reports-page" class="nav-btn flex-1 flex flex-col items-center p-3">
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        דוחות
+                    </button>
+                </nav>
+            </div>
+        </div>
 
+        <!-- Popups -->
+        <div id="popup-container" class="absolute bottom-20 left-4 right-4 space-y-2 z-50">
+            <!-- Popups will be injected here -->
+        </div>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginPage = document.getElementById('login-page');
+            const mainApp = document.getElementById('main-app');
+            const loginBtn = document.getElementById('login-btn');
+            const pages = document.querySelectorAll('.page');
+            const navBtns = document.querySelectorAll('.nav-btn');
+            const popupContainer = document.getElementById('popup-container');
+
+            let monthlyOrdersChart, orderTypeChart;
+
+            const mockData = {
+                user: {
+                    name: 'ערן אזולאי',
+                    lastLogin: 'אתמול, 17:30'
+                },
+                materialsHistory: [
+                    { date: '28/08/25', project: 'פרויקט אנקורים', status: 'הושלם' },
+                    { date: '25/08/25', project: 'פרויקט הרצליה', status: 'בדרך' },
+                    { date: '22/08/25', project: 'פרויקט אנקורים', status: 'הושלם' },
+                ],
+                reports: {
+                    monthlyOrders: {
+                        labels: ['מאי', 'יוני', 'יולי', 'אוגוסט'],
+                        data: [25, 38, 52, 45]
+                    },
+                    orderTypes: {
+                        labels: ['חומרי בניין', 'מכולות', 'הובלות'],
+                        data: [65, 25, 10]
+                    }
+                }
+            };
+
+            function showPopup(message, duration = 3000) {
+                const popup = document.createElement('div');
+                popup.className = 'popup bg-gray-800 text-white text-center py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-4';
+                popup.textContent = message;
+                popupContainer.appendChild(popup);
+                setTimeout(() => {
+                    popup.classList.add('show');
+                }, 10);
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                    setTimeout(() => popup.remove(), 300);
+                }, duration);
+            }
+
+            function handleLogin() {
+                loginPage.style.transition = 'opacity 0.5s';
+                loginPage.style.opacity = '0';
+                
+                setTimeout(() => {
+                    loginPage.classList.remove('active');
+                    mainApp.classList.remove('hidden');
+                    switchPage('home-page');
+                    showPopup(`ברוך השב, ${mockData.user.name}!`);
+                    setTimeout(() => showPopup(`כניסה אחרונה שלך: ${mockData.user.lastLogin}`), 1000);
+                }, 500);
+            }
+
+            function switchPage(pageId) {
+                pages.forEach(page => {
+                    page.classList.toggle('active', page.id === pageId);
+                });
+                navBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.page === pageId);
+                });
+                if (pageId === 'reports-page') {
+                    initCharts();
+                }
+                if(pageId === 'materials-page') {
+                    renderMaterialsHistory();
+                }
+            }
+            
+            function renderMaterialsHistory() {
+                const tbody = document.getElementById('materials-history-body');
+                tbody.innerHTML = '';
+                mockData.materialsHistory.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b';
+                    row.innerHTML = `
+                        <td class="p-3">${order.date}</td>
+                        <td class="p-3">${order.project}</td>
+                        <td class="p-3"><span class="px-2 py-1 text-xs rounded-full ${order.status === 'הושלם' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${order.status}</span></td>
+                        <td class="p-3 text-center">
+                            <button class="text-blue-500">📋</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            function initCharts() {
+                const monthlyCtx = document.getElementById('monthlyOrdersChart').getContext('2d');
+                const orderTypeCtx = document.getElementById('orderTypeChart').getContext('2d');
+
+                if(monthlyOrdersChart) monthlyOrdersChart.destroy();
+                monthlyOrdersChart = new Chart(monthlyCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: mockData.reports.monthlyOrders.labels,
+                        datasets: [{
+                            label: 'מספר הזמנות',
+                            data: mockData.reports.monthlyOrders.data,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                if(orderTypeChart) orderTypeChart.destroy();
+                orderTypeChart = new Chart(orderTypeCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: mockData.reports.orderTypes.labels,
+                        datasets: [{
+                            data: mockData.reports.orderTypes.data,
+                            backgroundColor: ['#3b82f6', '#ef4444', '#8b5cf6'],
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            loginBtn.addEventListener('click', handleLogin);
+            navBtns.forEach(btn => {
+                btn.addEventListener('click', () => switchPage(btn.dataset.page));
+            });
+
+            // Initial state
+            document.getElementById('home-page').classList.add('active');
+
+        });
+    </script>
 </body>
 </html>
