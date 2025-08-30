@@ -1,0 +1,48 @@
+<html lang="he">
+<div id="orderForm" class="card" style="display:none">
+<div class="progress"><i></i></div>
+<h4>טופס הזמנה חדשה</h4>
+<div class="form-grid">
+<input id="contactName" placeholder="איש קשר" />
+<input id="contactPhone" placeholder="טלפון לקבלת סחורה" />
+<select id="actionType">
+<option>הצבה</option>
+<option>החלפה</option>
+<option>איסוף</option>
+<option>הובלה</option>
+<option>שאלה</option>
+</select>
+<select id="branch">
+<option value="התלמיד">התלמיד - התלמיד 6, הוד השרון</option>
+<option value="החרש">החרש - החרש 10, הוד השרון</option>
+</select>
+</div>
+<textarea id="supplyAddress" placeholder="כתובת אספקה / תיאור"></textarea>
+
+
+<div class="items">
+<input id="productSearch" placeholder="הזן מוצר/מק" />
+<div id="pickedItems" class="items-list"></div>
+<div class="btn-row"><button id="btnAddItem">הוסף פריט</button><button id="btnSendWA">שתף לוואטסאפ</button></div>
+</div>
+</div>
+
+
+<div id="historyArea" class="card" style="display:none"></div>
+</section>
+</main>
+
+
+<footer class="footer-nav">
+<button>ראשי</button>
+<button>מכולה</button>
+<button>הזמנת מנוף</button>
+<button>פריקה ידנית</button>
+</footer>
+</div>
+
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
