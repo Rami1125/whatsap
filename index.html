@@ -135,8 +135,8 @@
                             <div class="space-y-4">
                                 <select id="paint-branch" class="w-full p-3 border-2 rounded-lg"><option value="">בחר סניף</option><option value="התלמיד">סניף התלמיד</option><option value="החרש">סניף החרש</option></select>
                                 <div><input id="paint-liters" type="number" min="1" max="18" placeholder="כמות (1-18 ליטר)" class="w-full p-3 border-2 rounded-lg"><p class="text-xs text-secondary mt-1">כפוף לזמינות במלאי</p></div>
-                                <button class="w-full bg-green-500 text-white font-bold py-3 rounded-lg" onclick="sendTintOrder()">שליחת הזמנה</button>
-                                <button class="w-full p-2 mt-2 text-secondary" onclick="closeModal('paint-order-modal')">ביטול</button>
+                                <button id="send-tint-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg">שליחת הזמנה</button>
+                                <button id="cancel-tint-btn" class="w-full p-2 mt-2 text-secondary">ביטול</button>
                             </div>
                         </div>
                     </div>
@@ -147,6 +147,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyp9fB8y-2ZDp39MxfcysYlgOO6DlJKcndF202vRk0DLbWjIfgROc02GyCQJy21ORRCPQ/exec';
             const loginPage = document.getElementById('login-page');
             const mainApp = document.getElementById('main-app');
             const loginBtn = document.getElementById('login-btn');
@@ -158,18 +159,37 @@
             const fileUploadInput = document.getElementById('file-upload');
             const fileNameDisplay = document.getElementById('file-name');
             const modalContainer = document.getElementById('modal-container');
+            const cancelTintBtn = document.getElementById('cancel-tint-btn');
+            const sendTintBtn = document.getElementById('send-tint-btn');
 
             const orderWizardState = { currentStep: 1, totalSteps: 3 };
             let currentPaintOrder = {};
+            let appData = { colors: [] };
+            let currentUser = {};
 
             const encouragementMessages = ["יופי של התחלה!", "כבר כמעט שם...", "עבודה נהדרת!", "ממשיכים במלוא המרץ!"];
             
-            const colorData = [
-                { brand: 'נירלט', name: 'NWC032', code: 'ירקרק עדין', hex: '#e0e8e1' }, { brand: 'נירלט', name: 'NWC040', code: 'אבן מדבר', hex: '#dcd3c8' }, { brand: 'נירלט', name: 'IS0011', code: 'לבן שבור', hex: '#f4f3ed' },
-                { brand: 'טמבור', name: 'OW221P', code: 'כותנה לבנה', hex: '#f5f0e8' }, { brand: 'טמבור', name: '0542T', code: 'אפור אבן', hex: '#c9c6bf' }, { brand: 'טמבור', name: '1545T', code: 'כחול אפרפר', hex: '#d0dbe1' },
-                { brand: 'נירלט', name: 'NWC055', code: 'מרווה', hex: '#c1cdc2' }, { brand: 'טמבור', name: '0028P', code: 'ורוד עתיק', hex: '#e6d4cf' }, { brand: 'נירלט', name: 'IS0512', code: 'אפרסק בהיר', hex: '#fbe5da' }
-            ];
-
+            async function apiCall(action, params = {}) {
+                const url = new URL(GAS_WEB_APP_URL);
+                const formData = new FormData();
+                formData.append('action', action);
+                for (const key in params) {
+                    formData.append(key, params[key]);
+                }
+                
+                try {
+                    const response = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: formData });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const result = await response.json();
+                    if (result.status === 'error') throw new Error(result.message);
+                    return result.data;
+                } catch (error) {
+                    console.error('API Call Error:', action, error);
+                    showPopup(`שגיאה בפעולה: ${error.message}`, 4000);
+                    throw error;
+                }
+            }
+            
             function showPopup(message, duration = 3000) {
                 const popup = document.createElement('div');
                 popup.className = 'popup bg-gray-800 text-white text-center py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-4';
@@ -187,19 +207,41 @@
                 }
             }
 
-            function handleLogin() {
-                loginPage.style.transition = 'opacity 0.5s, transform 0.5s';
-                loginPage.style.opacity = '0';
-                loginPage.style.transform = 'scale(0.9)';
-                setTimeout(() => {
-                    loginPage.classList.remove('active');
-                    mainApp.classList.remove('hidden');
-                    modalContainer.classList.remove('hidden');
-                    applySavedTheme();
-                    switchPage('home-page');
-                    showPopup(`ברוך השב, ערן!`);
-                    setTimeout(() => showPopup(`כניסה אחרונה שלך: אתמול, 17:30`), 1500);
-                }, 500);
+            async function handleLogin() {
+                const phone = document.getElementById('phone-input').value;
+                const password = document.getElementById('password-input').value;
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'מתחבר...';
+
+                try {
+                    const userData = await apiCall('login', { phone, password });
+                    currentUser = userData;
+
+                    loginPage.style.transition = 'opacity 0.5s, transform 0.5s';
+                    loginPage.style.opacity = '0';
+                    loginPage.style.transform = 'scale(0.9)';
+                    
+                    setTimeout(async () => {
+                        loginPage.classList.remove('active');
+                        mainApp.classList.remove('hidden');
+                        modalContainer.classList.remove('hidden');
+                        applySavedTheme();
+                        
+                        const data = await apiCall('getAppData', { customerId: currentUser.customerId });
+                        appData = data;
+                        
+                        switchPage('home-page');
+                        showPopup(`ברוך השב, ${currentUser.name}!`);
+                        setTimeout(() => showPopup(`כניסה אחרונה שלך: אתמול, 17:30`), 1500);
+
+                    }, 500);
+
+                } catch (error) {
+                     showPopup('פרטי ההתחברות שגויים');
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'כניסה';
+                }
             }
             
             function switchPage(pageId) {
@@ -240,12 +282,17 @@
             function renderColorSwatches(brandFilter = 'all') {
                 const grid = document.getElementById('color-swatch-grid');
                 grid.innerHTML = '';
-                const filteredColors = brandFilter === 'all' ? colorData : colorData.filter(c => c.brand === brandFilter);
+                const filteredColors = brandFilter === 'all' ? (appData.colors || []) : appData.colors.filter(c => c.מותג === brandFilter);
+                if (!filteredColors || filteredColors.length === 0) {
+                    grid.innerHTML = `<p class="col-span-3 text-center text-secondary">לא נמצאו גוונים. ודא שהגדרת את גיליון 'גוונים' בחשבון Google שלך.</p>`;
+                    return;
+                }
                 filteredColors.forEach(color => {
                     const swatch = document.createElement('div');
                     swatch.className = 'color-swatch card rounded-lg text-center aspect-square flex flex-col justify-between shadow-sm cursor-pointer';
-                    swatch.innerHTML = `<div class="w-full h-2/3 rounded-t-lg" style="background-color: ${color.hex};"></div><div class="p-2 text-xs"><p class="font-bold">${color.name}</p><p class="text-secondary">${color.code}</p></div>`;
-                    swatch.onclick = () => openTintOrderModal(color);
+                    const colorData = { brand: color.מותג, name: color.שם_גוון, code: color.קוד_גוון, hex: color.hex };
+                    swatch.innerHTML = `<div class="w-full h-2/3 rounded-t-lg" style="background-color: ${colorData.hex};"></div><div class="p-2 text-xs"><p class="font-bold">${colorData.name}</p><p class="text-secondary">${colorData.code}</p></div>`;
+                    swatch.onclick = () => openTintOrderModal(colorData);
                     grid.appendChild(swatch);
                 });
             }
@@ -259,14 +306,32 @@
                 openModal('paint-order-modal');
             }
 
-            window.sendTintOrder = function() {
-                const orderData = { ...currentPaintOrder, branch: document.getElementById('paint-branch').value, liters: document.getElementById('paint-liters').value };
-                if (!orderData.branch || !orderData.liters) { showPopup('יש למלא את כל הפרטים', 2500); return; }
-                console.log("Sending Tint Order:", orderData);
-                showPopup('הזמנת הגיוון נשלחה בהצלחה!');
-                closeModal('paint-order-modal');
-            }
+            async function sendTintOrder() {
+                const orderData = { 
+                    ...currentPaintOrder, 
+                    branch: document.getElementById('paint-branch').value, 
+                    liters: document.getElementById('paint-liters').value,
+                    customerId: currentUser.customerId,
+                    customerName: currentUser.name
+                };
 
+                if (!orderData.branch || !orderData.liters) { showPopup('יש למלא את כל הפרטים', 2500); return; }
+                
+                sendTintBtn.disabled = true;
+                sendTintBtn.textContent = 'שולח...';
+
+                try {
+                    await apiCall('addNewTintOrder', { tintData: JSON.stringify(orderData) });
+                    showPopup('הזמנת הגיוון נשלחה בהצלחה!');
+                    closeModal('paint-order-modal');
+                } catch (error) {
+                    showPopup('שליחת ההזמנה נכשלה');
+                } finally {
+                    sendTintBtn.disabled = false;
+                    sendTintBtn.textContent = 'שליחת הזמנה';
+                }
+            }
+            
             function setupNavigation() {
                 const navItems = [{ id: 'home-page', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', label: 'ראשי' }, { id: 'containers-page', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', label: 'מכולות' }, { id: 'materials-page', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4', label: 'היסטוריה' }, { id: 'reports-page', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', label: 'דוחות' }];
                 navContainer.innerHTML = navItems.map(item => `<button data-page="${item.id}" class="nav-btn flex-1 flex flex-col items-center p-3"><svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg>${item.label}</button>`).join('');
@@ -275,6 +340,9 @@
 
             function setupEventListeners() {
                 loginBtn.addEventListener('click', handleLogin);
+                sendTintBtn.addEventListener('click', sendTintOrder);
+                cancelTintBtn.addEventListener('click', () => closeModal('paint-order-modal'));
+
                 document.querySelectorAll('.quick-action-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         if (e.currentTarget.dataset.action === 'new-order') {
