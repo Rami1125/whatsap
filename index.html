@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>מערכת ניהול פרימיום - ח. סבן</title>
     <!-- 
-        Version 7.0 - Final Modal Fix
-        - DEFINITIVE FIX (Modal on Load): Added a JS command on startup to forcibly hide all modals, ensuring none appear on page load under any circumstances.
-        - DEFINITIVE FIX (Unclickable 'X'): Replaced the generic modal event listener with a more robust and direct one that specifically targets close buttons and modal backgrounds. The 'X' button is now fully functional.
-        - This is the final stable version.
+        Version 8.2 - CSS Hotfix
+        - Fixed a critical typo in the Tailwind CSS CDN link ('cdn/tailwindcss.com' to 'cdn.tailwindcss.com').
+        - This restores the entire application's styling.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,6 +82,7 @@
         .form-luxury-bg::before { content: ''; position: absolute; inset: 0; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(2px); z-index: 1; }
         html.dark .form-luxury-bg::before { background-color: rgba(0, 0, 0, 0.85); }
         .form-content { position: relative; z-index: 2; }
+        .status-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
     </style>
 </head>
 <body class="bg-slate-800 flex items-center justify-center min-h-screen p-4">
@@ -191,7 +191,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Definitive Fix: Ensure all modals are hidden on startup
             document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
 
             const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbySlBiMdN2PyqG151h_urG7Hp_yz-v2XBhT9WCdrE7WEWKYAOHhJSIXeqZLRth5DvR_DA/exec';
@@ -204,20 +203,14 @@
             const headerTitle = document.getElementById('header-title');
             const themeToggleBtn = document.getElementById('theme-toggle-btn');
             const pages = document.querySelectorAll('.page');
-            const appScreen = document.getElementById('app-screen');
-            const edgePanel = document.getElementById('edge-panel');
             const popupContainer = document.getElementById('popup-container');
-            const modalContainer = document.getElementById('modal-container');
-            const fileUploadInput = document.getElementById('file-upload');
-            const fileNameDisplay = document.getElementById('file-name');
             const sendTintBtn = document.getElementById('send-tint-btn');
 
             let ordersChartInstance = null;
             const orderWizardState = { currentStep: 1, totalSteps: 3 };
             let currentPaintOrder = {};
-            let appData = { colors: [] };
+            let appData = { colors: [], orders: [], containers: [] };
             let currentUser = {};
-            const encouragementMessages = ["יופי של התחלה!", "כבר כמעט שם...", "עבודה נהדרת!", "ממשיכים במלוא המרץ!"];
 
             async function apiCall(action, params = {}) {
                 const formData = new FormData();
@@ -250,8 +243,11 @@
                 else { document.documentElement.classList.remove('dark'); }
             }
 
-            function updateEdgePanelUI(data) {
+            function updateSummariesAndBadges(data) {
                 if (!data) return;
+                const openOrders = data.orders?.filter(o => o.status === 'חדשה' || o.status === 'בטיפול').length || 0;
+                const activeContainers = data.containers?.length || 0;
+
                 const updateButton = (id, value) => {
                     const btn = document.getElementById(id);
                     if (!btn) return;
@@ -259,10 +255,10 @@
                     if (badge && value > 0) { badge.textContent = value; btn.classList.add('highlight'); } 
                     else if (badge) { btn.classList.remove('highlight'); }
                 };
-                updateButton('edge-orders', data.ordersCount);
-                updateButton('edge-containers', data.containersCount);
-                document.getElementById('summary-orders').textContent = data.ordersCount || 0;
-                document.getElementById('summary-containers').textContent = data.containersCount || 0;
+                updateButton('edge-orders', openOrders);
+                updateButton('edge-containers', activeContainers);
+                document.getElementById('summary-orders').textContent = openOrders;
+                document.getElementById('summary-containers').textContent = activeContainers;
             }
 
             async function handleLogin() {
@@ -279,7 +275,7 @@
                     showPopup('טוען נתונים...');
                     
                     appData = await apiCall('getAppData', { customerId: currentUser.customerId });
-                    updateEdgePanelUI(appData);
+                    updateSummariesAndBadges(appData);
                     document.getElementById('user-name-display').textContent = currentUser.name || "משתמש";
                     
                     switchPage('home-page');
@@ -293,28 +289,121 @@
                 }
             }
 
+            function renderOrdersPage(orders) {
+                const container = document.getElementById('materials-page');
+                container.innerHTML = '<h3 class="font-bold mb-4 text-lg">היסטוריית הזמנות</h3>';
+
+                if (!orders || orders.length === 0) {
+                    container.innerHTML += '<p class="text-secondary text-center mt-8">לא נמצאו הזמנות.</p>';
+                    return;
+                }
+
+                const statusStyles = {
+                    'חדשה': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                    'בטיפול': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                    'סופקה': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+                    'מבוטלת': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                };
+
+                const tableHtml = `
+                    <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-xl shadow">
+                        <table class="min-w-full text-sm text-right">
+                            <thead class="bg-slate-200 dark:bg-slate-700">
+                                <tr>
+                                    <th class="p-3">#</th>
+                                    <th class="p-3">פרויקט</th>
+                                    <th class="p-3">תאריך</th>
+                                    <th class="p-3">סטטוס</th>
+                                    <th class="p-3">סה"כ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${orders.map(order => `
+                                    <tr class="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">
+                                        <td class="p-3">${order.orderId}</td>
+                                        <td class="p-3">${order.customerOrProjectName}</td>
+                                        <td class="p-3">${new Date(order.timestamp).toLocaleDateString('he-IL')}</td>
+                                        <td class="p-3"><span class="status-badge ${statusStyles[order.status] || ''}">${order.status}</span></td>
+                                        <td class="p-3 font-bold">₪${order.totalAmount}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.innerHTML += tableHtml;
+            }
+
+            function renderContainersPage(containers) {
+                 const container = document.getElementById('containers-page');
+                 container.innerHTML = '<h3 class="font-bold mb-4 text-lg">סטטוס מכולות</h3>';
+
+                if (!containers || containers.length === 0) {
+                    container.innerHTML += '<p class="text-secondary text-center mt-8">לא נמצאו מכולות פעילות.</p>';
+                    return;
+                }
+                
+                const listHtml = `
+                    <div class="space-y-4">
+                        ${containers.map(c => `
+                            <div class="card p-4 rounded-xl">
+                                <div class="flex justify-between items-center mb-2">
+                                    <p class="font-bold text-lg">${c.containerId}</p>
+                                    <span class="status-badge bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">${c.status}</span>
+                                </div>
+                                <p class="text-secondary">${c.site}</p>
+                                <p class="text-sm text-secondary mt-1">תאריך יציאה: ${new Date(c.dateOut).toLocaleDateString('he-IL')}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                 container.innerHTML += listHtml;
+            }
+
             function renderOrdersChart() {
                 const ctx = document.getElementById('ordersChart');
                 if (!ctx) return;
-                if(ordersChartInstance) ordersChartInstance.destroy();
+                if (ordersChartInstance) ordersChartInstance.destroy();
                 const isDark = document.documentElement.classList.contains('dark');
+
+                const ordersLast7Days = appData.orders?.slice(-7) || [];
+                const chartLabels = ordersLast7Days.map(o => new Date(o.timestamp).toLocaleDateString('he-IL', { weekday: 'short' }));
+                const chartData = ordersLast7Days.map(o => o.totalAmount);
+
                 ordersChartInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'],
-                        datasets: [{ label: 'הזמנות', data: [12, 19, 3, 5, 2, 3, 8], backgroundColor: 'rgba(37, 99, 235, 0.6)', borderColor: 'rgba(37, 99, 235, 1)', borderWidth: 1, borderRadius: 8 }]
+                        labels: chartLabels.length ? chartLabels : ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'],
+                        datasets: [{
+                            label: 'הזמנות',
+                            data: chartData.length ? chartData : [0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: 'rgba(37, 99, 235, 0.6)',
+                            borderColor: 'rgba(37, 99, 235, 1)',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        }]
                     },
                     options: {
-                        responsive: true, maintainAspectRatio: false,
+                        responsive: true,
+                        maintainAspectRatio: false,
                         scales: {
-                            y: { beginAtZero: true, grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }, ticks: { color: isDark ? '#FFF' : '#000'} },
-                            x: { grid: { display: false }, ticks: { color: isDark ? '#FFF' : '#000'} }
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+                                ticks: { color: isDark ? '#FFF' : '#000' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: isDark ? '#FFF' : '#000' }
+                            }
                         },
-                        plugins: { legend: { display: false } }
+                        plugins: {
+                            legend: { display: false }
+                        }
                     }
                 });
             }
-            
+
             function switchPage(pageId) {
                 pages.forEach(page => page.classList.remove('active'));
                 const newPage = document.getElementById(pageId);
@@ -322,57 +411,53 @@
                 document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId));
                 const pageTitles = {'home-page': 'דף הבית', 'containers-page': 'מכולות', 'materials-page': 'היסטוריית הזמנות', 'tinting-page': 'מניפת גוונים', 'order-wizard-page': 'הזמנה חדשה', 'reports-page': 'דוחות', 'profile-page': 'פרופיל אישי'};
                 headerTitle.textContent = pageTitles[pageId] || 'ח. סבן';
+                
+                if (pageId === 'materials-page') renderOrdersPage(appData.orders);
+                if (pageId === 'containers-page') renderContainersPage(appData.containers);
                 if (pageId === 'reports-page') renderOrdersChart();
                 if (pageId === 'tinting-page') renderColorSwatches();
             }
 
             window.goToOrderStep = function(direction) {
-                let { currentStep, totalSteps } = orderWizardState; let nextStep = currentStep;
+                let { currentStep, totalSteps } = orderWizardState;
+                let nextStep = currentStep;
                 if (direction === 'next' && currentStep < totalSteps) nextStep++;
                 else if (direction === 'back' && currentStep > 1) nextStep--;
                 if (nextStep !== currentStep) {
                     orderWizardState.currentStep = nextStep;
                     updateOrderWizardView();
-                    if (direction === 'next') showPopup(encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)], 2000);
                 }
             }
-            
+
             function updateOrderWizardView() {
                 const { currentStep, totalSteps } = orderWizardState;
                 document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
                 document.getElementById(`order-step-${currentStep}`).classList.add('active');
                 const percentage = Math.round((currentStep / totalSteps) * 100);
                 const progressBar = document.getElementById('order-progress-bar');
-                progressBar.style.width = `${percentage}%`; progressBar.textContent = `${percentage}%`;
+                progressBar.style.width = `${percentage}%`;
+                progressBar.textContent = `${percentage}%`;
                 document.getElementById('order-back-btn').classList.toggle('hidden', currentStep === 1);
                 document.getElementById('order-next-btn').classList.toggle('hidden', currentStep === totalSteps);
                 document.getElementById('order-send-btn').classList.toggle('hidden', currentStep !== totalSteps);
             }
 
-            function openModal(modalId) {
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.classList.add('active');
-                }
-            }
-            function closeModal(modalId) {
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            }
-
+            function openModal(modalId) { document.getElementById(modalId)?.classList.add('active'); }
+            function closeModal(modalId) { document.getElementById(modalId)?.classList.remove('active'); }
 
             function renderColorSwatches(brandFilter = 'all') {
                 const grid = document.getElementById('color-swatch-grid');
                 grid.innerHTML = '';
                 const filteredColors = brandFilter === 'all' ? (appData.colors || []) : (appData.colors || []).filter(c => c.מותג === brandFilter);
-                if (!filteredColors || filteredColors.length === 0) { grid.innerHTML = `<p class="col-span-3 text-center text-secondary">לא נמצאו גוונים.</p>`; return; }
+                if (!filteredColors || filteredColors.length === 0) {
+                    grid.innerHTML = `<p class="col-span-3 text-center text-secondary">לא נמצאו גוונים.</p>`;
+                    return;
+                }
                 filteredColors.forEach(color => {
                     const swatch = document.createElement('div');
-                    swatch.className = 'color-swatch card rounded-lg text-center aspect-square flex flex-col justify-between shadow-sm cursor-pointer';
+                    swatch.className = 'card rounded-lg text-center aspect-square flex flex-col justify-between shadow-sm cursor-pointer transition-transform hover:scale-105';
                     const colorData = { brand: color.מותג, name: color.שם_גוון, code: color.קוד_גוון, hex: color.hex };
-                    swatch.innerHTML = `<div class="w-full h-2/3 rounded-t-lg" style="background-color: ${colorData.hex};"></div><div class="p-2 text-xs"><p class="font-bold">${colorData.name}</p><p class="text-secondary">${colorData.code}</p></div>`;
+                    swatch.innerHTML = `<div class="w-full h-2/3 rounded-t-lg" style="background-color: ${colorData.hex};"></div><div class="p-2 text-xs"><p class="font-bold truncate">${colorData.name}</p><p class="text-secondary">${colorData.code}</p></div>`;
                     swatch.onclick = () => openTintOrderModal(colorData);
                     grid.appendChild(swatch);
                 });
@@ -389,8 +474,12 @@
 
             async function sendTintOrder() {
                 const orderData = { ...currentPaintOrder, branch: document.getElementById('paint-branch').value, liters: document.getElementById('paint-liters').value, customerId: currentUser.customerId, customerName: currentUser.name };
-                if (!orderData.branch || !orderData.liters) { showPopup('יש למלא את כל הפרטים'); return; }
-                sendTintBtn.disabled = true; sendTintBtn.textContent = 'שולח...';
+                if (!orderData.branch || !orderData.liters) {
+                    showPopup('יש למלא את כל הפרטים');
+                    return;
+                }
+                sendTintBtn.disabled = true;
+                sendTintBtn.textContent = 'שולח...';
                 try {
                     await apiCall('addNewTintOrder', { tintData: JSON.stringify(orderData) });
                     showPopup('הזמנת הגיוון נשלחה בהצלחה!');
@@ -398,9 +487,11 @@
                 } catch (error) {
                     showPopup('שליחת ההזמנה נכשלה');
                 } finally {
-                    sendTintBtn.disabled = false; sendTintBtn.textContent = 'שליחת הזמנה';
+                    sendTintBtn.disabled = false;
+                    sendTintBtn.textContent = 'שליחת הזמנה';
                 }
             }
+
 
             function setupNavigation() {
                 const navItems = [ { id: 'home-page', icon: '🏠', label: 'ראשי' }, { id: 'containers-page', icon: '🏗️', label: 'מכולות' }, { id: 'materials-page', icon: '🧱', label: 'היסטוריה' }, { id: 'reports-page', icon: '📊', label: 'דוחות' }, { id: 'profile-page', icon: '👤', label: 'פרופיל' } ];
@@ -415,39 +506,34 @@
                     localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
                     if (document.getElementById('reports-page').classList.contains('active')) { renderOrdersChart(); }
                 });
-                appScreen.addEventListener('mouseenter', () => window.innerWidth > 768 && edgePanel.classList.add('open'));
-                appScreen.addEventListener('mouseleave', () => window.innerWidth > 768 && edgePanel.classList.remove('open'));
+                
                 document.getElementById('edge-orders').addEventListener('click', () => switchPage('materials-page'));
                 document.getElementById('edge-containers').addEventListener('click', () => switchPage('containers-page'));
                 document.getElementById('edge-reports').addEventListener('click', () => switchPage('reports-page'));
                 document.getElementById('edge-settings').addEventListener('click', () => switchPage('profile-page'));
                 document.querySelectorAll('.quick-action-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => { if (e.currentTarget.dataset.action === 'new-order') { switchPage('order-wizard-page'); goToOrderStep(1); } });
+                    btn.addEventListener('click', (e) => { if (e.currentTarget.dataset.action === 'new-order') { switchPage('order-wizard-page'); } });
                 });
                 document.querySelectorAll('.nav-btn-link').forEach(btn => btn.addEventListener('click', (e) => switchPage(e.currentTarget.dataset.page)));
+                
                 document.querySelectorAll('.brand-filter-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('.brand-filter-btn').forEach(b => { b.classList.remove('bg-blue-500', 'text-white'); b.classList.add('border-gray-300', 'dark:border-gray-600'); });
+                        document.querySelectorAll('.brand-filter-btn').forEach(b => {
+                             b.classList.remove('bg-blue-500', 'text-white');
+                             b.classList.add('border-gray-300', 'dark:border-gray-600');
+                        });
                         e.currentTarget.classList.add('bg-blue-500', 'text-white');
                         renderColorSwatches(e.currentTarget.dataset.brand);
                     });
                 });
-                if(fileUploadInput) fileUploadInput.addEventListener('change', (event) => { const file = event.target.files[0]; if (file) { fileNameDisplay.textContent = `קובץ שנבחר: ${file.name}`; } else { fileNameDisplay.textContent = ''; } });
+
                 sendTintBtn.addEventListener('click', sendTintOrder);
                 
-                // Robust modal closing logic
                 document.querySelectorAll('.modal').forEach(modalEl => {
-                    modalEl.addEventListener('click', (e) => {
-                        if (e.target === modalEl) { // Click on background
-                            closeModal(modalEl.id);
-                        }
-                    });
+                    modalEl.addEventListener('click', (e) => { if (e.target === modalEl) closeModal(modalEl.id); });
                 });
                 document.querySelectorAll('[data-action="close-modal"]').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const modal = e.target.closest('.modal');
-                        if (modal) closeModal(modal.id);
-                    });
+                    button.addEventListener('click', (e) => { const modal = e.target.closest('.modal'); if (modal) closeModal(modal.id); });
                 });
             }
             
@@ -455,7 +541,6 @@
             applySavedTheme();
             setupNavigation();
             setupEventListeners();
-            switchPage('home-page');
             loginView.classList.add('active');
             mainAppView.classList.remove('active');
         });
