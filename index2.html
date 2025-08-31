@@ -10,23 +10,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* --- New Light & Modern Theme --- */
+        /* --- Base Setup --- */
+        html, body {
+            height: 100%;
+            overflow: hidden; /* Prevent body scroll */
+        }
         :root { 
-            --background-start: #f8fafc; 
-            --background-end: #f1f5f9; 
-            --text-primary: #0f172a; 
-            --text-secondary: #64748b; 
-            --card-bg: #ffffff; 
-            --border-color: #e2e8f0; 
-            --accent-color: #2563eb; 
+            --background-start: #f8fafc; --background-end: #f1f5f9; 
+            --text-primary: #0f172a; --text-secondary: #64748b; 
+            --card-bg: #ffffff; --border-color: #e2e8f0; --accent-color: #2563eb; 
         }
         html.dark { 
-            --background-start: #020617; 
-            --background-end: #0f172a; 
-            --text-primary: #f8fafc; 
-            --text-secondary: #94a3b8; 
-            --card-bg: #1e293b; 
-            --border-color: #334155; 
+            --background-start: #020617; --background-end: #0f172a; 
+            --text-primary: #f8fafc; --text-secondary: #94a3b8; 
+            --card-bg: #1e293b; --border-color: #334155; 
         }
         body { 
             font-family: 'Heebo', sans-serif; 
@@ -34,43 +31,40 @@
             -moz-osx-font-smoothing: grayscale; 
         }
         
-        /* --- New iPhone 14 Pro Frame --- */
-        .iphone-frame {
+        /* --- Stable Samsung Frame with Fixed Height --- */
+        .samsung-frame {
             width: 100%;
-            height: 100%;
-            max-width: 430px; /* iPhone 14 Pro Max width */
-            max-height: 932px; /* iPhone 14 Pro Max height */
+            height: 100%; /* Fill parent (body) */
+            max-width: 440px;
+            max-height: 950px; /* Fixed height for desktop */
             margin: auto;
-            border: 14px solid #111;
-            border-radius: 60px;
+            border: 12px solid #1c1c1c;
+            border-radius: 40px;
             box-shadow: 0 20px 60px -10px rgba(0,0,0,0.5);
-            display: flex;
+            display: flex; /* Use flex to manage children */
             flex-direction: column;
             overflow: hidden;
             position: relative;
             background-color: #000;
         }
-        .iphone-screen { 
-            flex: 1; 
-            overflow-y: auto; 
+        .samsung-screen { 
+            flex: 1; /* Take all available space in the frame */
+            overflow: hidden;
             position: relative; 
+            background-color: var(--background-start); /* Fallback */
             background: linear-gradient(to bottom, var(--background-start), var(--background-end)); 
             color: var(--text-primary); 
-            border-radius: 46px;
+            border-radius: 28px;
+            display: flex; /* Crucial for internal layout */
+            flex-direction: column;
         }
-        .dynamic-island {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 125px;
-            height: 36px;
-            background: #111;
-            border-radius: 25px;
-            z-index: 100;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .camera-punch-hole {
+            position: absolute; top: 25px; left: 50%;
+            transform: translateX(-50%); width: 12px; height: 12px;
+            background: #111; border-radius: 50%; z-index: 100;
         }
         
+        /* --- Page & Animation Logic --- */
         .page, .modal, .wizard-step { display: none; }
         .page.active, .wizard-step.active { display: block; animation: fadeInPage 0.5s; }
         .modal.active { display: flex; animation: fadeInOverlay 0.3s ease-out forwards; }
@@ -82,20 +76,22 @@
         .popup { transition: opacity 0.3s, transform 0.3s; }
         .popup.show { opacity: 1; transform: translateY(0); }
         
-        /* --- Upgraded Shine Effect --- */
+        /* --- REMOVED: Grid layout for the main app structure --- */
+        /* #main-app {
+            display: grid;
+            grid-template-rows: auto 1fr auto; 
+        } */
+        
+        /* --- Shine Effect --- */
         .interactive-shine { position: relative; overflow: hidden; }
         .interactive-shine::before {
-            content: ''; position: absolute;
-            left: var(--shine-x, -100px); top: var(--shine-y, -100px);
-            transform: translate(-50%, -50%);
-            width: 200px; height: 200px;
+            content: ''; position: absolute; left: var(--shine-x, -100px); top: var(--shine-y, -100px);
+            transform: translate(-50%, -50%); width: 200px; height: 200px;
             background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 60%);
-            opacity: 0; transition: opacity 0.3s ease-in-out;
-            pointer-events: none;
+            opacity: 0; transition: opacity 0.3s ease-in-out; pointer-events: none;
         }
         .interactive-shine:hover::before, .interactive-shine.touch-active::before { opacity: 1; }
         html.dark .interactive-shine::before { background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 60%); }
-        /* --- End Upgraded Shine Effect --- */
 
         .card { background-color: var(--card-bg); border: 1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05); }
         .nav-bar { background-color: var(--card-bg); border-top: 1px solid var(--border-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
@@ -111,38 +107,39 @@
 </head>
 <body class="bg-slate-800 flex items-center justify-center min-h-screen p-4">
 
-    <div class="iphone-frame">
-        <div id="app-screen" class="iphone-screen">
-            <div class="dynamic-island"></div>
+    <div class="samsung-frame">
+        <div id="app-screen" class="samsung-screen">
+            <div class="camera-punch-hole"></div>
             
             <!-- Login Page -->
-            <div id="login-page" class="page active h-full">
-                 <div class="absolute inset-0 bg-slate-200 dark:bg-slate-900"></div>
-                <div class="relative h-full flex flex-col justify-center items-center p-8">
-                    <div class="w-full max-w-sm text-center space-y-6">
-                        <img id="login-logo" src="https://placehold.co/150x50/1e293b/FFFFFF?text=H.SABAN" alt="Company Logo" class="mx-auto h-12">
-                        <div class="relative inline-block">
-                             <img id="user-avatar" src="https://placehold.co/100x100/FFFFFF/CCCCCC?text=" alt="User Avatar" class="w-28 h-28 rounded-full mx-auto border-4 border-white shadow-lg">
-                             <div class="absolute -top-2 -right-2 text-4xl animate-wave">👋</div>
-                        </div>
-                        <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-200">ברוכים הבאים</h1>
-                        <div><input id="phone-input" type="tel" placeholder="מספר טלפון" class="w-full bg-white/50 border-b-2 border-slate-300 text-center text-slate-800 placeholder-slate-500 focus:outline-none focus:border-blue-500 py-3 rounded-t-lg"></div>
-                        <div><input id="password-input" type="password" placeholder="סיסמה" class="w-full bg-white/50 border-b-2 border-slate-300 text-center text-slate-800 placeholder-slate-500 focus:outline-none focus:border-blue-500 py-3 rounded-b-lg mb-4"></div>
-                        <button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-100 shadow-lg shadow-blue-500/30 interactive-shine">כניסה</button>
+            <!-- FIX: Replaced h-full with flex-1 for robust height calculation within a flex container -->
+            <div id="login-page" class="page active flex-1 flex flex-col justify-center items-center bg-slate-200 dark:bg-slate-900 p-8">
+                <div class="w-full max-w-sm text-center space-y-6">
+                    <img id="login-logo" src="https://placehold.co/150x50/1e293b/FFFFFF?text=H.SABAN" alt="Company Logo" class="mx-auto h-12">
+                    <div class="relative inline-block">
+                         <img id="user-avatar" src="https://placehold.co/100x100/FFFFFF/CCCCCC?text=" alt="User Avatar" class="w-28 h-28 rounded-full mx-auto border-4 border-white shadow-lg">
+                         <div class="absolute -top-2 -right-2 text-4xl animate-wave">👋</div>
                     </div>
+                    <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-200">ברוכים הבאים</h1>
+                    <div><input id="phone-input" type="tel" placeholder="מספר טלפון" class="w-full bg-white/50 border-b-2 border-slate-300 text-center text-slate-800 placeholder-slate-500 focus:outline-none focus:border-blue-500 py-3 rounded-t-lg"></div>
+                    <div><input id="password-input" type="password" placeholder="סיסמה" class="w-full bg-white/50 border-b-2 border-slate-300 text-center text-slate-800 placeholder-slate-500 focus:outline-none focus:border-blue-500 py-3 rounded-b-lg mb-4"></div>
+                    <button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-100 shadow-lg shadow-blue-500/30 interactive-shine">כניסה</button>
                 </div>
             </div>
 
             <!-- Main App Content -->
-            <div id="main-app" class="hidden h-full flex flex-col pt-12">
-                 <header class="absolute top-0 left-0 right-0 p-4 pt-12 flex justify-between items-center z-20"><h1 id="header-title" class="text-xl font-bold"></h1>
+            <!-- FIX: Switched to a Flexbox layout for stability. `flex-1` makes this container fill the screen. -->
+            <div id="main-app" class="hidden flex-1 flex flex-col">
+                 <header class="p-4 pt-10 flex justify-between items-center z-20">
+                    <h1 id="header-title" class="text-xl font-bold"></h1>
                     <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
                         <svg class="w-6 h-6 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                         <svg class="w-6 h-6 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                     </button>
                 </header>
-                <main class="flex-1 overflow-y-auto p-4 pt-4 pb-20">
-                    <div id="home-page" class="page">
+                <!-- FIX: Added `flex-1` to make the main content area expand and fill all available space. -->
+                <main class="flex-1 overflow-y-auto p-4 pt-0">
+                    <div id="home-page" class="page h-full">
                         <p class="text-secondary mb-6">מה תרצה לעשות היום?</p>
                         <div class="grid grid-cols-2 gap-4">
                             <button class="quick-action-btn card p-4 rounded-2xl text-center aspect-square flex flex-col justify-center items-center transition-all duration-200 active:scale-95 active:bg-slate-100 interactive-shine" data-action="new-order"><span class="text-4xl mb-2">📦</span><span class="font-semibold">הזמנה חדשה</span></button>
@@ -151,9 +148,11 @@
                             <button class="nav-btn-link card p-4 rounded-2xl text-center aspect-square flex flex-col justify-center items-center transition-all duration-200 active:scale-95 active:bg-slate-100 interactive-shine" data-page="materials-page"><span class="text-4xl mb-2">📜</span><span class="font-semibold">היסטוריית הזמנות</span></button>
                         </div>
                     </div>
-                    <div id="containers-page" class="page"></div><div id="materials-page" class="page"></div><div id="reports-page" class="page"></div>
+                    <div id="containers-page" class="page h-full"><p class="text-center p-8 text-secondary">בקרוב: מעקב אחר מכולות</p></div>
+                    <div id="materials-page" class="page h-full"><p class="text-center p-8 text-secondary">בקרוב: היסטוריית הזמנות מפורטת</p></div>
+                    <div id="reports-page" class="page h-full"><p class="text-center p-8 text-secondary">בקרוב: דוחות וניתוחים</p></div>
 
-                    <div id="tinting-page" class="page">
+                    <div id="tinting-page" class="page h-full">
                         <p class="text-secondary mb-4">בחר את הגוון הרצוי מהמניפה. תוכל לסנן לפי מותג.</p>
                         <div class="flex gap-2 mb-4">
                             <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-blue-600 bg-blue-600 text-white transition-transform duration-150 active:scale-95" data-brand="all">הכל</button>
@@ -162,39 +161,41 @@
                         </div>
                         <div id="color-swatch-grid" class="grid grid-cols-3 gap-4"></div>
                     </div>
-
-                    <div id="order-wizard-page" class="page absolute inset-0 form-luxury-bg">
-                         <div class="form-content h-full flex flex-col p-4 pt-16">
-                            <div class="mb-6"><div class="w-full bg-slate-200 rounded-full h-4 dark:bg-slate-700 relative"><div id="order-progress-bar" class="bg-blue-600 h-4 rounded-full progress-bar flex items-center justify-center text-white text-xs font-bold" style="width: 33%">33%</div></div></div>
-                            <div class="flex-1 overflow-y-auto">
-                                <div id="order-step-1" class="wizard-step active">
-                                    <h2 class="text-3xl font-bold mb-2">שלב 1: למי ההזמנה?</h2><p class="text-secondary mb-6">בחר את הפרויקט או הכתובת למשלוח.</p>
-                                    <div class="space-y-6"><div><label class="font-semibold mb-2 block">בחירת פרויקט</label><input type="text" placeholder="התחל להקליד שם פרויקט..." class="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 transition"></div><div><label class="font-semibold mb-2 block">כתובת</label><input type="text" value="אנקורים 2, רמת גן" class="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 transition"></div></div>
-                                </div>
-                                <div id="order-step-2" class="wizard-step">
-                                     <h2 class="text-3xl font-bold mb-2">שלב 2: מה להביא?</h2><p class="text-secondary mb-6">הוסף פריטים וצרף קובץ במידת הצורך.</p>
-                                     <div class="space-y-6"><p class="text-center text-secondary py-8">מנגנון הוספת פריטים יופיע כאן</p><div><label for="file-upload" class="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"><span>📷</span><span>הוסף תמונה / קובץ</span></label><input id="file-upload" type="file" class="hidden"><p id="file-name" class="text-sm text-secondary mt-2 text-center"></p></div></div>
-                                </div>
-                                <div id="order-step-3" class="wizard-step">
-                                     <h2 class="text-3xl font-bold mb-2">שלב 3: סיכום ושליחה</h2><p class="text-secondary mb-6">בדוק שהכל נכון לפני השליחה.</p>
-                                     <div class="space-y-6"><div class="card p-4 rounded-lg min-h-[200px]"><p class="text-center text-secondary">סיכום ההזמנה יוצג כאן</p></div></div>
-                                </div>
-                            </div>
-                             <div class="flex gap-4 mt-6">
-                                <button id="order-back-btn" class="w-1/3 bg-slate-300 dark:bg-slate-600 font-bold py-3 rounded-lg" onclick="goToOrderStep('back')">הקודם</button>
-                                <button id="order-next-btn" class="w-2/3 bg-blue-500 text-white font-bold py-3 rounded-lg" onclick="goToOrderStep('next')">הבא</button>
-                                <button id="order-send-btn" class="w-2/3 bg-green-500 text-white font-bold py-3 rounded-lg hidden">אישור ושליחה</button>
-                            </div>
-                        </div>
-                    </div>
                 </main>
-                <nav class="absolute bottom-0 left-0 right-0 nav-bar flex justify-around text-secondary text-xs z-30 rounded-b-[46px]"></nav>
-                <div id="popup-container" class="absolute bottom-24 left-4 right-4 space-y-2 z-40"></div>
+                
+                <nav class="nav-bar flex justify-around text-secondary text-xs z-30 rounded-b-[28px]"></nav>
+                <div id="popup-container" class="absolute bottom-20 left-4 right-4 space-y-2 z-50"></div>
             </div>
 
-            <!-- Modal Container is now a direct child of iphone-frame for correct stacking -->
-            <div id="modal-container" class="hidden">
-                <div id="paint-order-modal" class="modal fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[99]">
+            <!-- Full screen pages -->
+            <div id="order-wizard-page" class="page absolute inset-0 form-luxury-bg z-40">
+                 <div class="form-content h-full flex flex-col p-4 pt-10">
+                    <div class="mb-6"><div class="w-full bg-slate-200 rounded-full h-4 dark:bg-slate-700 relative"><div id="order-progress-bar" class="bg-blue-600 h-4 rounded-full progress-bar flex items-center justify-center text-white text-xs font-bold" style="width: 33%">33%</div></div></div>
+                    <div class="flex-1 overflow-y-auto">
+                        <div id="order-step-1" class="wizard-step active">
+                            <h2 class="text-3xl font-bold mb-2">שלב 1: למי ההזמנה?</h2><p class="text-secondary mb-6">בחר את הפרויקט או הכתובת למשלוח.</p>
+                            <div class="space-y-6"><div><label class="font-semibold mb-2 block">בחירת פרויקט</label><input type="text" placeholder="התחל להקליד שם פרויקט..." class="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 transition"></div><div><label class="font-semibold mb-2 block">כתובת</label><input type="text" value="אנקורים 2, רמת גן" class="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 transition"></div></div>
+                        </div>
+                        <div id="order-step-2" class="wizard-step">
+                             <h2 class="text-3xl font-bold mb-2">שלב 2: מה להביא?</h2><p class="text-secondary mb-6">הוסף פריטים וצרף קובץ במידת הצורך.</p>
+                             <div class="space-y-6"><p class="text-center text-secondary py-8">מנגנון הוספת פריטים יופיע כאן</p><div><label for="file-upload" class="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"><span>📷</span><span>הוסף תמונה / קובץ</span></label><input id="file-upload" type="file" class="hidden"><p id="file-name" class="text-sm text-secondary mt-2 text-center"></p></div></div>
+                        </div>
+                        <div id="order-step-3" class="wizard-step">
+                             <h2 class="text-3xl font-bold mb-2">שלב 3: סיכום ושליחה</h2><p class="text-secondary mb-6">בדוק שהכל נכון לפני השליחה.</p>
+                             <div class="space-y-6"><div class="card p-4 rounded-lg min-h-[200px]"><p class="text-center text-secondary">סיכום ההזמנה יוצג כאן</p></div></div>
+                        </div>
+                    </div>
+                     <div class="flex gap-4 mt-6">
+                        <button id="order-back-btn" class="w-1/3 bg-slate-300 dark:bg-slate-600 font-bold py-3 rounded-lg" onclick="goToOrderStep('back')">הקודם</button>
+                        <button id="order-next-btn" class="w-2/3 bg-blue-500 text-white font-bold py-3 rounded-lg" onclick="goToOrderStep('next')">הבא</button>
+                        <button id="order-send-btn" class="w-2/3 bg-green-500 text-white font-bold py-3 rounded-lg hidden">אישור ושליחה</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Container -->
+            <div id="modal-container" class="hidden absolute inset-0 z-[99]">
+                <div id="paint-order-modal" class="modal fixed inset-0 bg-black/60 flex items-center justify-center p-4">
                     <div class="card rounded-2xl p-6 w-full max-w-sm relative">
                         <button id="close-tint-modal-btn" class="absolute top-2 right-2 p-1 rounded-full text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 focus:outline-none z-10">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -219,7 +220,6 @@
             const loginPage = document.getElementById('login-page');
             const mainApp = document.getElementById('main-app');
             const loginBtn = document.getElementById('login-btn');
-            const pages = document.querySelectorAll('.page');
             const navContainer = document.querySelector('nav');
             const popupContainer = document.getElementById('popup-container');
             const themeToggleBtn = document.getElementById('theme-toggle-btn');
@@ -290,12 +290,10 @@
 
                     loginPage.style.transition = 'opacity 0.5s, transform 0.5s';
                     loginPage.style.opacity = '0';
-                    loginPage.style.transform = 'scale(0.9)';
                     
                     setTimeout(async () => {
                         loginPage.classList.remove('active');
                         mainApp.classList.remove('hidden');
-                        modalContainer.classList.remove('hidden');
                         applySavedTheme();
                         
                         showPopup('טוען נתונים...');
@@ -317,10 +315,13 @@
             }
             
             function switchPage(pageId) {
-                pages.forEach(page => page.classList.toggle('active', page.id === pageId));
+                document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+                document.getElementById(pageId).classList.add('active');
                 document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId));
+                
                 const pageTitles = {'home-page': 'דף הבית', 'containers-page': 'מגדל הפיקוח', 'materials-page': 'היסטוריית הזמנות', 'reports-page': 'דוחות וניתוחים', 'order-wizard-page': 'הזמנה חדשה', 'tinting-page': 'מניפת גוונים'};
                 headerTitle.textContent = pageTitles[pageId] || 'ח. סבן';
+                
                 if(pageId === 'tinting-page') renderColorSwatches();
             }
 
@@ -354,12 +355,11 @@
             }
             function closeModal(modalId) { 
                 document.getElementById(modalId).classList.remove('active');
-                // Optional: Hide the container if no modals are active
                 setTimeout(() => {
                     if (!modalContainer.querySelector('.modal.active')) {
                         modalContainer.classList.add('hidden');
                     }
-                }, 300); // match animation duration
+                }, 300); 
             }
             
             function renderColorSwatches(brandFilter = 'all') {
