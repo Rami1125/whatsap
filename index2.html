@@ -23,15 +23,31 @@
         .iphone-screen { flex: 1; overflow-y: auto; position: relative; background: linear-gradient(to bottom, var(--background-start), var(--background-end)); color: var(--text-primary); }
         .iphone-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 180px; height: 25px; background: black; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; z-index: 100; }
         .page, .modal, .wizard-step { display: none; }
-        .page.active, .wizard-step.active { display: block; animation: fadeIn 0.5s; }
-        .modal.active { display: flex; animation: fadeIn 0.5s; } /* Fix: Changed from 'block' to 'flex' to ensure modal content is centered. */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .page.active, .wizard-step.active { display: block; animation: fadeInPage 0.5s; }
+        .modal.active { display: flex; animation: fadeInOverlay 0.3s ease-out forwards; }
+        @keyframes fadeInPage { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+        .modal.active .card { animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
         .nav-btn.active { color: var(--accent-color); }
         .popup { transition: opacity 0.3s, transform 0.3s; }
         .popup.show { opacity: 1; transform: translateY(0); }
-        .shine-effect { position: relative; overflow: hidden; }
-        .shine-effect::after { content: ''; position: absolute; top: -50%; left: -150%; width: 100%; height: 200%; background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%); transform: skewX(-25deg); transition: left 0.75s; }
-        .shine-effect:hover::after { left: 150%; }
+        
+        /* --- Upgraded Shine Effect --- */
+        .interactive-shine { position: relative; overflow: hidden; }
+        .interactive-shine::before {
+            content: ''; position: absolute;
+            left: var(--shine-x, -100px); top: var(--shine-y, -100px);
+            transform: translate(-50%, -50%);
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 60%);
+            opacity: 0; transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        .interactive-shine:hover::before, .interactive-shine.touch-active::before { opacity: 1; }
+        html.dark .interactive-shine::before { background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 60%); }
+        /* --- End Upgraded Shine Effect --- */
+
         .chart-container { position: relative; width: 100%; height: 300px; max-height: 40vh; }
         .card { background-color: var(--card-bg); border: 1px solid var(--border-color); }
         .nav-bar { background-color: var(--card-bg); border-top: 1px solid var(--border-color); }
@@ -64,7 +80,7 @@
                         <h1 class="text-3xl font-bold text-gray-800">ברוכים הבאים</h1>
                         <div><input id="phone-input" type="tel" placeholder="מספר טלפון" class="w-full bg-white/50 border-b-2 border-gray-300 text-center text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 py-3 rounded-t-lg"></div>
                         <div><input id="password-input" type="password" placeholder="סיסמה" class="w-full bg-white/50 border-b-2 border-gray-300 text-center text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 py-3 rounded-b-lg mb-4"></div>
-                        <button id="login-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-105 shadow-lg shine-effect">כניסה</button>
+                        <button id="login-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-100 shadow-lg interactive-shine">כניסה</button>
                     </div>
                 </div>
             </div>
@@ -81,10 +97,10 @@
                     <div id="home-page" class="page">
                         <p class="text-secondary mb-6">מה תרצה לעשות היום?</p>
                         <div class="grid grid-cols-2 gap-4">
-                            <button class="quick-action-btn card p-4 rounded-lg text-center aspect-square flex flex-col justify-center items-center shadow-sm hover:shadow-lg transition-shadow" data-action="new-order"><span class="text-4xl mb-2">📦</span><span class="font-semibold">הזמנה חדשה</span></button>
-                            <button class="nav-btn-link card p-4 rounded-lg text-center aspect-square flex flex-col justify-center items-center shadow-sm hover:shadow-lg transition-shadow" data-page="tinting-page"><span class="text-4xl mb-2">🎨</span><span class="font-semibold">הזמנת גיוון</span></button>
-                            <button class="nav-btn-link card p-4 rounded-lg text-center aspect-square flex flex-col justify-center items-center shadow-sm hover:shadow-lg transition-shadow" data-page="containers-page"><span class="text-4xl mb-2">🏗️</span><span class="font-semibold">סטטוס מכולה</span></button>
-                            <button class="nav-btn-link card p-4 rounded-lg text-center aspect-square flex flex-col justify-center items-center shadow-sm hover:shadow-lg transition-shadow" data-page="materials-page"><span class="text-4xl mb-2">📜</span><span class="font-semibold">היסטוריית הזמנות</span></button>
+                            <button class="quick-action-btn card p-4 rounded-lg text-center aspect-square flex flex-col justify-center items-center shadow-sm hover:shadow-lg transition-shadow transition-transform duration-200 active:scale-95 interactive-shine" data-action="new-order"><span class="text-4xl mb-2">📦</span><span class="font-semibold">הזמנה חדשה</span></button>
+                            <button class="nav-btn-link card p-4 rounded-lg text-center aspect-square flex flex-col justify-center items-center shadow-sm hover:shadow-lg transition-shadow transition-transform duration-200 active:scale-95 interactive-shine" data-page="tinting-page"><span class="text-4xl mb-2">🎨</span><span class="font-semibold">הזמנת גיוון</span></button>
+                            <button class="nav-btn-link card p-4 rounded-lg text-center aspect-square flex flex-col justify-center items-center shadow-sm hover:shadow-lg transition-shadow transition-transform duration-200 active:scale-95 interactive-shine" data-page="containers-page"><span class="text-4xl mb-2">🏗️</span><span class="font-semibold">סטטוס מכולה</span></button>
+                            <button class="nav-btn-link card p-4 rounded-lg text-center aspect-square flex flex-col justify-center items-center shadow-sm hover:shadow-lg transition-shadow transition-transform duration-200 active:scale-95 interactive-shine" data-page="materials-page"><span class="text-4xl mb-2">📜</span><span class="font-semibold">היסטוריית הזמנות</span></button>
                         </div>
                     </div>
                     <div id="containers-page" class="page"></div><div id="materials-page" class="page"></div><div id="reports-page" class="page"></div>
@@ -92,9 +108,9 @@
                     <div id="tinting-page" class="page">
                         <p class="text-secondary mb-4">בחר את הגוון הרצוי מהמניפה. תוכל לסנן לפי מותג.</p>
                         <div class="flex gap-2 mb-4">
-                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-blue-500 bg-blue-500 text-white" data-brand="all">הכל</button>
-                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-gray-300 dark:border-gray-600" data-brand="נירלט">נירלט</button>
-                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-gray-300 dark:border-gray-600" data-brand="טמבור">טמבור</button>
+                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-blue-500 bg-blue-500 text-white transition-transform duration-150 active:scale-95" data-brand="all">הכל</button>
+                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 transition-transform duration-150 active:scale-95" data-brand="נירלט">נירלט</button>
+                            <button class="brand-filter-btn flex-1 p-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 transition-transform duration-150 active:scale-95" data-brand="טמבור">טמבור</button>
                         </div>
                         <div id="color-swatch-grid" class="grid grid-cols-3 gap-4"></div>
                     </div>
@@ -127,18 +143,22 @@
                 <nav class="absolute bottom-0 left-0 right-0 nav-bar flex justify-around text-secondary text-xs z-50 rounded-b-3xl"></nav>
 
                 <div id="popup-container" class="absolute bottom-24 left-4 right-4 space-y-2 z-50"></div>
-                
-                <div id="modal-container" class="hidden">
-                    <div id="paint-order-modal" class="modal fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[99]">
-                        <div class="card rounded-lg p-6 w-full max-w-sm">
-                            <div id="paint-order-header" class="text-center mb-4 pb-4 border-b border-border-color"></div>
-                            <h3 class="text-lg font-semibold mb-4 text-center">פרטי הזמנת גיוון</h3>
-                            <div class="space-y-4">
-                                <select id="paint-branch" class="w-full p-3 border-2 rounded-lg"><option value="">בחר סניף</option><option value="התלמיד">סניף התלמיד</option><option value="החרש">סניף החרש</option></select>
-                                <div><input id="paint-liters" type="number" min="1" max="18" placeholder="כמות (1-18 ליטר)" class="w-full p-3 border-2 rounded-lg"><p class="text-xs text-secondary mt-1">כפוף לזמינות במלאי</p></div>
-                                <button id="send-tint-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg">שליחת הזמנה</button>
-                                <button id="cancel-tint-btn" class="w-full p-2 mt-2 text-secondary">ביטול</button>
-                            </div>
+            </div>
+
+            <!-- Modal Container (Moved outside main-app for better stacking context) -->
+            <div id="modal-container" class="hidden">
+                <div id="paint-order-modal" class="modal fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[99]">
+                    <div class="card rounded-lg p-6 w-full max-w-sm relative">
+                        <button id="close-tint-modal-btn" class="absolute top-2 right-2 p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        <div id="paint-order-header" class="text-center mb-4 pb-4 border-b border-border-color"></div>
+                        <h3 class="text-lg font-semibold mb-4 text-center">פרטי הזמנת גיוון</h3>
+                        <div class="space-y-4">
+                            <select id="paint-branch" class="w-full p-3 border-2 rounded-lg"><option value="">בחר סניף</option><option value="התלמיד">סניף התלמיד</option><option value="החרש">סניף החרש</option></select>
+                            <div><input id="paint-liters" type="number" min="1" max="18" placeholder="כמות (1-18 ליטר)" class="w-full p-3 border-2 rounded-lg"><p class="text-xs text-secondary mt-1">כפוף לזמינות במלאי</p></div>
+                            <button id="send-tint-btn" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg">שליחת הזמנה</button>
+                            <button id="cancel-tint-btn" class="w-full p-2 mt-2 text-secondary">ביטול</button>
                         </div>
                     </div>
                 </div>
@@ -162,6 +182,7 @@
             const modalContainer = document.getElementById('modal-container');
             const cancelTintBtn = document.getElementById('cancel-tint-btn');
             const sendTintBtn = document.getElementById('send-tint-btn');
+            const closeTintModalBtn = document.getElementById('close-tint-modal-btn');
 
             const orderWizardState = { currentStep: 1, totalSteps: 3 };
             let currentPaintOrder = {};
@@ -293,7 +314,7 @@
                 }
                 filteredColors.forEach(color => {
                     const swatch = document.createElement('div');
-                    swatch.className = 'color-swatch card rounded-lg text-center aspect-square flex flex-col justify-between shadow-sm cursor-pointer';
+                    swatch.className = 'color-swatch card rounded-lg text-center aspect-square flex flex-col justify-between shadow-sm cursor-pointer transition-transform duration-150 active:scale-95';
                     const colorData = { brand: color.מותג, name: color.שם_גוון, code: color.קוד_גוון, hex: color.hex };
                     swatch.innerHTML = `<div class="w-full h-2/3 rounded-t-lg" style="background-color: ${colorData.hex};"></div><div class="p-2 text-xs"><p class="font-bold">${colorData.name}</p><p class="text-secondary">${colorData.code}</p></div>`;
                     swatch.onclick = () => openTintOrderModal(colorData);
@@ -341,11 +362,42 @@
                 navContainer.innerHTML = navItems.map(item => `<button data-page="${item.id}" class="nav-btn flex-1 flex flex-col items-center p-3"><svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg>${item.label}</button>`).join('');
                 document.querySelectorAll('.nav-btn, .nav-btn-link').forEach(btn => btn.addEventListener('click', () => switchPage(btn.dataset.page)));
             }
+            
+            function setupInteractiveShine() {
+                document.querySelectorAll('.interactive-shine').forEach(el => {
+                    const updateShine = (e) => {
+                        const rect = el.getBoundingClientRect();
+                        let x, y;
+                        if (e.touches) {
+                            x = e.touches[0].clientX - rect.left;
+                            y = e.touches[0].clientY - rect.top;
+                        } else {
+                            x = e.clientX - rect.left;
+                            y = e.clientY - rect.top;
+                        }
+                        el.style.setProperty('--shine-x', `${x}px`);
+                        el.style.setProperty('--shine-y', `${y}px`);
+                    };
+                    el.addEventListener('mousemove', updateShine);
+                    el.addEventListener('touchmove', updateShine, { passive: true });
+                    el.addEventListener('touchstart', (e) => {
+                        el.classList.add('touch-active');
+                        updateShine(e);
+                    }, { passive: true });
+                    el.addEventListener('touchend', () => el.classList.remove('touch-active'));
+                });
+            }
 
             function setupEventListeners() {
                 loginBtn.addEventListener('click', handleLogin);
                 sendTintBtn.addEventListener('click', sendTintOrder);
                 cancelTintBtn.addEventListener('click', () => closeModal('paint-order-modal'));
+                closeTintModalBtn.addEventListener('click', () => closeModal('paint-order-modal'));
+
+                const paintOrderModal = document.getElementById('paint-order-modal');
+                paintOrderModal.addEventListener('click', (e) => {
+                    if (e.target === paintOrderModal) { closeModal('paint-order-modal'); }
+                });
 
                 document.querySelectorAll('.quick-action-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
@@ -384,9 +436,11 @@
             setupThemeToggle();
             setupNavigation();
             setupEventListeners();
+            setupInteractiveShine();
             switchPage('login-page');
             document.querySelector('.nav-btn[data-page="home-page"]').classList.add('active');
         });
     </script>
 </body>
 </html>
+
