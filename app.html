@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>מערכת ניהול פרימיום - ח. סבן</title>
+    
+    <!-- Chosen Palette: Calm Neutral Harmony (Inspired by the provided eco.html and the sleek design from the login image) -->
+    <!-- Application Structure Plan: A single-page application (SPA) designed as a dedicated client portal. The application is styled to resemble a modern Samsung phone with a main, scrollable content area and a bottom navigation bar. It includes distinct, full-page sections for each major feature: Dashboard, Containers, Materials, and Profile. The core logic is to dynamically fetch all data related to a specific client (Eran Azulay in this mock-up), filtering and presenting it across all pages to create a unified, personalized view. This structure provides a clean, focused user experience, preventing the user from getting overwhelmed by too much information at once while still allowing quick access to all relevant details. -->
+    <!-- Visualization & Content Choices: 
+        - Dashboard KPIs: Goal: Inform. Method: Styled HTML cards. Justification: Provides a quick, scannable summary of key business metrics.
+        - Container List: Goal: Organize/Inform. Method: A vertically scrolling list of cards with status highlighting. Justification: A mobile-friendly format for displaying detailed asset information, with immediate visual feedback on overdue items.
+        - Materials/Order History: Goal: Organize/Inform. Method: Accordion-style list. Justification: Efficiently displays a potentially long list of orders, keeping the UI clean by showing details only on click.
+        - Profile Details: Goal: Inform. Method: Simple HTML list of key data. Justification: A clean way to present personal and contact information.
+        - Data Association: Goal: Relationships. Method: JavaScript functions that match data across different sources based on name, phone, or address. Justification: This is the core logic that creates the unified client view, solving the main problem statement.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --background-start: #f8fafc; --background-end: #f1f5f9; 
+            --text-primary: #0f172a; --text-secondary: #64748b; 
+            --card-bg: #ffffff; --border-color: #e2e8f0; --accent-color: #2563eb; 
+        }
+        body {
+            font-family: 'Heebo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(to bottom, var(--background-start), var(--background-end));
+        }
+        .samsung-frame {
+            width: 100%; height: 100%; max-width: 440px; max-height: 950px; margin: auto;
+            border: 12px solid #1c1c1c; border-radius: 40px;
+            box-shadow: 0 20px 60px -10px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+        .samsung-screen { 
+            flex: 1; overflow: hidden; position: relative; 
+            background: linear-gradient(to bottom, var(--background-start), var(--background-end)); 
+            color: var(--text-primary); border-radius: 28px;
+            display: flex; flex-direction: column;
+        }
+        .view-container { display: none; }
+        .view-container.active { display: flex; flex: 1; flex-direction: column; }
+        .page, .modal { display: none; }
+        .page.active { display: block; animation: fadeInPage 0.5s; }
+        @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
+        .nav-bar { background-color: var(--card-bg); border-top: 1px solid var(--border-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .nav-btn.active { color: var(--accent-color); font-weight: 700; }
+        
+        .status-overdue {
+            color: #ef4444;
+            background-color: #fee2e2;
+        }
+        .status-active {
+            color: #22c55e;
+            background-color: #dcfce7;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .accordion-item.open .accordion-content {
+            max-height: 500px;
+        }
+        .kpi-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+        }
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        .samsung-frame .logo {
+            width: 150px;
+            margin: 20px auto;
+        }
+        .main-content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <div class="samsung-frame">
+        <div id="app-screen" class="samsung-screen">
+            <header class="p-4 pt-10 flex justify-between items-center flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <img src="https://i.postimg.cc/J7JGQYcT/image.jpg" alt="Company Logo" class="h-10 rounded-full">
+                    <h1 id="header-title" class="text-xl font-bold"></h1>
+                </div>
+            </header>
+            
+            <main class="main-content-scroll p-4">
+                <div id="dashboard-page" class="page active">
+                    <div class="space-y-6">
+                        <h2 class="text-2xl font-bold mb-4">שלום, <span id="user-name-display"></span></h2>
+                        <div class="kpi-card p-4 rounded-2xl">
+                             <h3 class="font-bold mb-2 text-primary">סיכום מהיר</h3>
+                             <div class="grid grid-cols-2 gap-4 text-center">
+                                 <div><p class="text-2xl font-bold text-blue-600" id="summary-orders">0</p><p class="text-sm text-secondary">הזמנות פתוחות</p></div>
+                                 <div><p class="text-2xl font-bold text-green-600" id="summary-containers">0</p><p class="text-sm text-secondary">מכולות בשימוש</p></div>
+                             </div>
+                        </div>
+                        <h3 class="font-bold mb-4 text-lg text-primary">מכולות שלי</h3>
+                        <div id="containers-list" class="space-y-4">
+                            <!-- Container cards will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="containers-page" class="page">
+                    <div class="space-y-6">
+                        <h2 class="text-2xl font-bold mb-4">סטטוס מכולות</h2>
+                        <div class="space-y-4" id="containers-page-list">
+                            <!-- Container cards will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="order-history-page" class="page">
+                    <div class="space-y-6">
+                        <h2 class="text-2xl font-bold mb-4">היסטוריית הזמנות</h2>
+                        <div id="materials-list" class="space-y-3">
+                            <!-- Material orders will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="profile-page" class="page">
+                    <div class="space-y-6">
+                         <h2 class="text-2xl font-bold mb-4">פרטים אישיים</h2>
+                         <div class="kpi-card p-5 rounded-2xl space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-secondary">שם מלא</label>
+                                <p class="font-bold text-lg text-primary" id="profile-name"></p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-secondary">מספרי טלפון</label>
+                                <div id="profile-phones" class="font-bold text-lg text-primary"></div>
+                            </div>
+                             <div>
+                                <label class="text-sm font-medium text-secondary">כתובות רשומות</label>
+                                <div id="profile-addresses" class="font-bold text-lg text-primary space-y-1"></div>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+            </main>
+
+            <nav id="bottom-nav" class="nav-bar flex justify-around text-secondary text-xs z-30 rounded-b-[28px] py-2 flex-shrink-0">
+                <button data-page="dashboard-page" class="nav-btn flex-1 flex flex-col items-center p-2 active">
+                    <span class="text-2xl">🏠</span><span>ראשי</span>
+                </button>
+                <button data-page="containers-page" class="nav-btn flex-1 flex flex-col items-center p-2">
+                    <span class="text-2xl">🏗️</span><span>מכולות</span>
+                </button>
+                <button data-page="order-history-page" class="nav-btn flex-1 flex flex-col items-center p-2">
+                    <span class="text-2xl">📦</span><span>היסטוריה</span>
+                </button>
+                <button data-page="profile-page" class="nav-btn flex-1 flex flex-col items-center p-2">
+                    <span class="text-2xl">👤</span><span>פרופיל</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxiS3wXwXCyh8xM1EdTiwXy0T-UyBRQgfrnRRis531lTxmgtJIGawfsPeetX5nVJW3V/exec';
+            
+            // --- USER TO QUERY ---
+            const currentCustomer = {
+                id: 'C1001',
+                name: 'א.ערן אזולאי',
+                phones: ['052-1112222', '08-9998888'],
+                addresses: ['הבונים 5, אשדוד', 'היצירה 12, תל אביב']
+            };
+
+            // --- API COMMUNICATION FUNCTION ---
+            const fetchData = async (action, params = {}) => {
+                const urlParams = new URLSearchParams({ action, ...params });
+                const url = `${SCRIPT_WEB_APP_URL}?${urlParams.toString()}`;
+
+                console.log('Fetching data from:', url);
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error("Server Error:", errorData.error);
+                        throw new Error(`HTTP error! Status: ${response.status}. Message: ${errorData.message}`);
+                    }
+                    const data = await response.json();
+                    if (!data.success) {
+                        console.error("Server-side logic error:", data.message);
+                        throw new Error(data.message || 'Server operation failed.');
+                    }
+                    return data.data;
+                } catch (error) {
+                    console.error("Failed to fetch data:", error);
+                    return null;
+                }
+            };
+            
+            // --- MAIN DATA LOADING AND PROCESSING ---
+            const loadCustomerData = async (customer) => {
+                 const rawData = await fetchData('getCustomerOrders', { customerName: customer.name });
+                
+                if (!rawData) {
+                    return { containers: [], materials: [] };
+                }
+
+                // Filtering logic as per user's request, based on name, phone, or address
+                const associatedOrders = rawData.filter(item => {
+                    const nameMatch = customer.name.includes(item['שם לקוח'] || '');
+                    const phoneMatch = customer.phones.some(p => p === item['טלפון לקוח']);
+                    const addressMatch = customer.addresses.some(a => a === item['כתובת']);
+                    return nameMatch || phoneMatch || addressMatch;
+                });
+
+                const containers = associatedOrders.filter(item => item['סוג פעולה'] === 'הורדה' && item['סטטוס'] !== 'סגור');
+                const materials = associatedOrders.filter(item => item['סוג פעולה'] !== 'הורדה');
+
+                return { containers, materials };
+            };
+
+            // --- RENDER FUNCTIONS ---
+            const renderUI = (customer, data) => {
+                const navItems = document.querySelectorAll('.nav-btn');
+                const pages = document.querySelectorAll('.page');
+                const showPage = (pageId) => {
+                    pages.forEach(page => page.classList.remove('active'));
+                    const pageElement = document.getElementById(pageId);
+                    if (pageElement) {
+                        pageElement.classList.add('active');
+                    }
+                    navItems.forEach(item => {
+                        item.classList.toggle('active', item.dataset.page === pageId);
+                    });
+                };
+                navItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        showPage(item.dataset.page);
+                    });
+                });
+                
+                showPage('dashboard-page');
+
+                const headerTitle = document.getElementById('header-title');
+                if (headerTitle) { headerTitle.textContent = 'ראשי'; }
+
+                const userNameDisplay = document.getElementById('user-name-display');
+                if (userNameDisplay) { userNameDisplay.textContent = customer.name; }
+                
+                renderDashboard(data.containers, data.materials);
+                renderContainersPage(data.containers);
+                renderMaterialsPage(data.materials);
+                renderProfilePage(customer);
+            };
+            
+            const renderDashboard = (containers, materials) => {
+                const summaryOrders = document.getElementById('summary-orders');
+                if (summaryOrders) { summaryOrders.textContent = materials.length; }
+                
+                const summaryContainers = document.getElementById('summary-containers');
+                if (summaryContainers) { summaryContainers.textContent = containers.length; }
+
+                const list = document.getElementById('containers-list');
+                if (!list) return;
+
+                const overdueContainers = containers.filter(c => {
+                    const start = new Date(c['תאריך הזמנה']);
+                    const today = new Date();
+                    const daysRented = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+                    return daysRented > 10;
+                });
+
+                if (overdueContainers.length === 0) {
+                    list.innerHTML = `<div class="text-center text-secondary mt-8">
+                        <p>אין כרגע מכולות חורגות. הכל תקין! 🎉</p>
+                    </div>`;
+                    return;
+                }
+                
+                list.innerHTML = overdueContainers.map(container => {
+                    const start = new Date(container['תאריך הזמנה']);
+                    const today = new Date();
+                    const daysRented = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+                    const daysOverdue = daysRented - 10;
+                    
+                    return `
+                        <div class="kpi-card p-4 rounded-xl shadow-sm border border-red-300">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-bold text-lg text-primary">מכולה ${container['מספר מכולה ירדה'] || 'N/A'}</p>
+                                    <p class="text-sm text-secondary">${container['כתובת'] || 'N/A'}</p>
+                                </div>
+                                <div class="status-overdue text-sm font-semibold px-2 py-1 rounded-full inline-block">
+                                   חריגה של ${Math.abs(daysOverdue)} ימים
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
+                                <div>
+                                    <p class="text-secondary">תאריך שכירות</p>
+                                    <p class="font-semibold text-primary">${new Date(container['תאריך הזמנה']).toLocaleDateString('he-IL')}</p>
+                                </div>
+                                <div>
+                                    <p class="text-secondary">ימים בשכירות</p>
+                                    <p class="font-semibold text-primary">${daysRented}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            const renderContainersPage = (containers) => {
+                const list = document.getElementById('containers-page-list');
+                if (!list) return;
+
+                list.innerHTML = `${containers.map(c => {
+                    const start = new Date(c['תאריך הזמנה']);
+                    const today = new Date();
+                    const daysRented = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+                    const isOverdue = daysRented > 10;
+                    const daysLeft = 10 - daysRented;
+                    
+                    let statusHtml = `
+                        <div class="status-active text-xs font-semibold px-2 py-1 rounded-full inline-block">
+                           ${daysLeft} ימים נותרו
+                        </div>`;
+                    if (isOverdue) {
+                        statusHtml = `
+                        <div class="status-overdue text-xs font-semibold px-2 py-1 rounded-full inline-block">
+                           חריגה של ${Math.abs(daysLeft)} ימים
+                        </div>`;
+                    }
+                    return `
+                        <div class="kpi-card p-4 rounded-xl shadow-sm border ${isOverdue ? 'border-red-300' : 'border-gray-200'}">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-bold text-lg text-primary">מכולה ${c['מספר מכולה ירדה'] || 'N/A'}</p>
+                                    <p class="text-sm text-secondary">${c['כתובת'] || 'N/A'}</p>
+                                </div>
+                                ${statusHtml}
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
+                                <div>
+                                    <p class="text-secondary">תאריך שכירות</p>
+                                    <p class="font-semibold text-primary">${new Date(c['תאריך הזמנה']).toLocaleDateString('he-IL')}</p>
+                                </div>
+                                <div>
+                                    <p class="text-secondary">ימים בשכירות</p>
+                                    <p class="font-semibold text-primary">${daysRented}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}`;
+            };
+            
+            const renderMaterialsPage = (materials) => {
+                 const list = document.getElementById('materials-list');
+                 if (!list) return;
+
+                 list.innerHTML = `${materials.map((order) => `
+                        <div class="accordion-item kpi-card rounded-xl shadow-sm border border-gray-200">
+                            <div class="accordion-header flex justify-between items-center p-4 cursor-pointer">
+                                <div>
+                                    <p class="font-bold text-lg text-primary">הזמנה ${order['תעודה'] || 'N/A'}</p>
+                                    <p class="text-sm text-secondary">${new Date(order['תאריך הזמנה']).toLocaleDateString('he-IL')} - ${order['סוג פעולה'] || 'N/A'}</p>
+                                </div>
+                                <span class="text-sm font-medium bg-gray-100 text-gray-800 px-2 py-1 rounded-full">${order['סטטוס'] || 'N/A'}</span>
+                            </div>
+                            <div class="accordion-content px-4 pb-4">
+                                <ul class="list-disc pr-5 text-secondary">
+                                     <li>הערות: ${order['הערות'] || 'אין הערות'}</li>
+                                </ul>
+                            </div>
+                        </div>
+                     `).join('')}`;
+
+                 document.querySelectorAll('.accordion-header').forEach(header => {
+                    header.addEventListener('click', () => {
+                        header.parentElement.classList.toggle('open');
+                    });
+                 });
+            };
+            
+            const renderProfilePage = (customer) => {
+                const page = document.getElementById('profile-page');
+                if (!page) return;
+                
+                const profileName = document.getElementById('profile-name');
+                if (profileName) { profileName.textContent = customer.name; }
+
+                const profilePhones = document.getElementById('profile-phones');
+                if (profilePhones) { profilePhones.innerHTML = customer.phones.map(p => `<div>${p}</div>`).join(''); }
+
+                const profileAddresses = document.getElementById('profile-addresses');
+                if (profileAddresses) { profileAddresses.innerHTML = customer.addresses.map(a => `<div class="p-2 bg-gray-50 rounded-md">${a}</div>`).join(''); }
+            };
+
+            // --- APP INITIALIZATION ---
+            const renderApp = async () => {
+                 const loader = document.createElement('div');
+                 loader.textContent = 'טוען נתונים...';
+                 loader.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: #333; z-index: 100;';
+                 document.body.appendChild(loader);
+
+                 if (currentCustomer) {
+                    const associatedData = await loadCustomerData(currentCustomer);
+                    if (associatedData) {
+                        renderUI(currentCustomer, associatedData);
+                    } else {
+                        document.body.innerHTML = '<p class="text-red-500 text-center text-lg font-bold mt-20">שגיאה בטעינת נתונים. אנא בדוק את הסקריפט.</p>';
+                    }
+                 } else {
+                    document.body.innerHTML = '<p class="text-red-500 text-center text-lg font-bold mt-20">שגיאה: לא נמצא לקוח.</p>';
+                 }
+                 loader.remove();
+            };
+            
+            renderApp();
+        });
+    </script>
+</body>
+</html>
